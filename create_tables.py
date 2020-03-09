@@ -19,7 +19,10 @@ def main():
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
 
-    conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
+    conn = psycopg2.connect(
+            "host=dwhcluster.cbazftvy98uk.us-west-2.redshift.amazonaws.com dbname={} user={} password={} port=5439".
+            format(*config['CLUSTER'].values())
+    )
     cur = conn.cursor()
 
     drop_tables(cur, conn)
