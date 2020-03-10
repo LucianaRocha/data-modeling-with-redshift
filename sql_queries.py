@@ -8,13 +8,13 @@ ARN = config.get("IAM_ROLE", "ARN")
 
 # DROP TABLES
 
-staging_events_table_drop = "DROP table IF EXISTS staging_events;"
-staging_songs_table_drop = "DROP table IF EXISTS staging_songs;"
-songplay_table_drop = "DROP table IF EXISTS songplay;"
-users_table_drop = "DROP table IF EXISTS users;"
-song_table_drop = "DROP table IF EXISTS song;"
-artist_table_drop = "DROP table IF EXISTS artist;"
-time_table_drop = "DROP table IF EXISTS times;"
+staging_events_table_drop = "DROP table IF EXISTS staging_events CASCADE;"
+staging_songs_table_drop = "DROP table IF EXISTS staging_songs CASCADE;"
+songplay_table_drop = "DROP table IF EXISTS songplay CASCADE;"
+users_table_drop = "DROP table IF EXISTS users CASCADE;"
+song_table_drop = "DROP table IF EXISTS song CASCADE;"
+artist_table_drop = "DROP table IF EXISTS artist CASCADE;"
+time_table_drop = "DROP table IF EXISTS times CASCADE;"
 
 # CREATE TABLES
 
@@ -57,7 +57,7 @@ staging_songs_table_create = (
 
 songplay_table_create = (
     "CREATE table IF NOT EXISTS songplays (" \
-        "songplay_id int," \
+        "songplay_id int identity(0, 1)," \
         "start_time TIMESTAMP," \
         "user_id int," \
         "level varchar," \
@@ -136,82 +136,77 @@ staging_songs_copy = ("""
 # FINAL TABLES
 
 user_table_insert = (
-    "INSERT INTO users(" \
-        "user_id," \
-        "first_name," \
-        "last_name," \
-        "gender," \
-        "level) " \
-        "VALUES (%s, %s, %s, %s, %s)" \
-        "ON CONFLICT (user_id)" \
-        "DO UPDATE " \
-            "SET first_name  = EXCLUDED.first_name," \
-                "last_name  = EXCLUDED.last_name," \
-                "gender  = EXCLUDED.gender," \
-                "level  = EXCLUDED.level;"
+    "INSERT INTO users " \
+        "SELECT userid, firstname, lastname, gender, level " \
+        "FROM " \
+            "( "
+            "SELECT MAX(ts) as ts, userid, firstname, "\
+  		    "lastname, gender, level "\
+            "FROM staging_events "\
+            "WHERE page = 'NextSong'  "\
+            "GROUP BY  "\
+            "userid, firstname, lastname, gender, level "\
+            "ORDER BY userid ASC "\
+            ")"
+
 )
 
 song_table_insert = (
-    "INSERT INTO songs(" \
-        "song_id," \
-        "title," \
-        "artist_id," \
-        "year," \
-        "duration)" \
-        "VALUES (%s, %s, %s, %s, %s)" \
-        "ON CONFLICT (song_id)" \
-        "DO UPDATE " \
-            "SET title  = EXCLUDED.title," \
-                "artist_id  = EXCLUDED.artist_id," \
-                "year  = EXCLUDED.year," \
-                "duration  = EXCLUDED.duration;"
+    "INSERT INTO songs " \
+        "SELECT song_id, title, artist_id, year, duration " \
+        "FROM " \
+        "(" \
+        "SELECT MAX(year) AS year, song_id, title, artist_id, duration " \
+        "FROM staging_songs " \
+        "GROUP BY song_id, title, artist_id, duration " \
+        ")"
 )
 
 artist_table_insert = (
-        "INSERT INTO artists(" \
-        "artist_id," \
-        "name," \
-        "location," \
-        "latitude," \
-        "longitude)" \
-        "VALUES (%s, %s, %s, %s, %s)" \
-        "ON CONFLICT (artist_id)" \
-        "DO UPDATE " \
-            "SET name  = EXCLUDED.name," \
-                "location = EXCLUDED.location," \
-                "latitude  = EXCLUDED.latitude," \
-                "longitude = EXCLUDED.longitude;"
+        "INSERT INTO artists " \
+            "SELECT DISTINCT artist_id, artist_name, artist_location, " \
+            "artist_latitude, artist_longitude " \
+            "FROM staging_songs"
+
 )
 
 time_table_insert = (
-        "INSERT INTO times (" \
-        "start_time," \
-        "hour," \
-        "day," \
-        "week," \
-        "month," \
-        "year," \
-        "weekday)" \
-        "VALUES (%s, %s, %s, %s, %s, %s, %s)" \
-        "ON CONFLICT (start_time)" \
-        "DO UPDATE " \
-            "SET hour  = EXCLUDED.hour," \
-                "day = EXCLUDED.day," \
-                "week  = EXCLUDED.week," \
-                "month = EXCLUDED.month;"
+        "INSERT INTO times " \
+            "SELECT " \
+            "start_time, " \
+            "extract(hour from start_time) as hour, " \
+            "extract(day from start_time) as day, " \
+            "extract(week from start_time) as week, " \
+            "extract(month from start_time) as month, " \
+            "extract(year from start_time) as year, " \
+            "extract(weekday from start_time) as weekday " \
+            "FROM ( " \
+            "    SELECT DISTINCT " \
+            "    timestamp 'epoch' + ts / 1000 * interval '1 second' as start_time " \
+            "    FROM staging_events " \
+            "    WHERE page = 'NextSong' " \
+            ") time"
+
 )
 
 songplay_table_insert = (
-    "INSERT INTO songplays(" \
-        "start_time," \
-        "user_id," \
-        "level," \
-        "song_id," \
-        "artist_id," \
-        "session_id," \
-        "location," \
-        "user_agent) " \
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
+    "INSERT INTO songplays (" \
+            "start_time, user_id, level, song_id, artist_id, " \
+            "session_id, location, user_agent )" \
+        "SELECT " \
+        "timestamp 'epoch' + events.ts / 1000 * interval '1 second' as start_time, " \
+        "events.userId as user_id, " \
+        "events.level, " \
+        "songs.song_id, " \
+        "songs.artist_id, " \
+        "events.sessionId as session_id, " \
+        "events.location, " \
+        "events.userAgent as user_agent " \
+        "FROM staging_events events " \
+        "LEFT JOIN staging_songs songs ON " \
+        "events.song = songs.title  " \
+        "AND events.artist = songs.artist_name " \
+        "WHERE events.page = 'NextSong' "
 ) 
 
 # QUERY LISTS
@@ -234,14 +229,14 @@ drop_table_queries = [
     artist_table_drop, 
     time_table_drop
     ]
-copy_table_queries = [
-    staging_events_copy, 
-    staging_songs_copy
-    ]
-insert_table_queries = [
-    user_table_insert, 
-    song_table_insert, 
-    artist_table_insert, 
-    time_table_insert,
-    songplay_table_insert
-    ]
+copy_table_queries = {
+    'staging_events_copy': staging_events_copy, 
+    'staging_songs_copy': staging_songs_copy
+    }
+insert_table_queries = {
+    'user_table_insert': user_table_insert,
+    'song_table_insert': song_table_insert,
+    'artist_table_insert': artist_table_insert,
+    'time_table_insert': time_table_insert,
+    'songplay_table_insert': songplay_table_insert
+    }

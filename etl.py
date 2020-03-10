@@ -4,15 +4,21 @@ from sql_queries import copy_table_queries, insert_table_queries
 
 
 def load_staging_tables(cur, conn):
-    for query in copy_table_queries:
+    print('>>>> Start load_staging_tables >>>>')
+    for query_name, query in copy_table_queries.items():
+        print('\t{}'.format(query_name))
         cur.execute(query)
         conn.commit()
+    print('>>>> End load_staging_tables >>>>')
 
 
 def insert_tables(cur, conn):
-    for query in insert_table_queries:
+    print('>>>> Start insert_tables >>>>')
+    for query_name, query in insert_table_queries.items():
+        print('\t{}'.format(query_name))
         cur.execute(query)
         conn.commit()
+    print('>>>> End insert_tables >>>>')
 
 
 def main():
