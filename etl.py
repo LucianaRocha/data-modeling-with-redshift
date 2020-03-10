@@ -1,6 +1,16 @@
 import configparser
 import psycopg2
-from sql_queries import copy_table_queries, insert_table_queries
+from sql_queries import set_path_dwh, copy_table_queries, insert_table_queries
+
+# CONFIG
+config = configparser.ConfigParser()
+config.read('dwh.cfg')
+ARN = config.get("IAM_ROLE", "ARN")
+
+def set_path(cur, conn):
+    for set_p in set_path_dwh:
+        cur.execute(set_p)
+        conn.commit()  
 
 
 def load_staging_tables(cur, conn):
@@ -31,6 +41,7 @@ def main():
     )
     cur = conn.cursor()
     
+    set_path(cur, conn)
     load_staging_tables(cur, conn)
     insert_tables(cur, conn)
 

@@ -1,7 +1,21 @@
 import configparser
 import psycopg2
-from sql_queries import create_table_queries, drop_table_queries
+from sql_queries import create_schema_redshift, set_path_dwh, create_table_queries, drop_table_queries
 
+# CONFIG
+config = configparser.ConfigParser()
+config.read('dwh.cfg')
+ARN = config.get("IAM_ROLE", "ARN")
+
+def create_schema(cur, conn):
+    for create in create_schema_redshift:
+        cur.execute(create)
+        conn.commit()
+
+def set_path(cur, conn):
+    for set_p in set_path_dwh:
+        cur.execute(set_p)
+        conn.commit()        
 
 def drop_tables(cur, conn):
     for query in drop_table_queries:
@@ -25,6 +39,8 @@ def main():
     )
     cur = conn.cursor()
 
+    create_schema(cur, conn)
+    set_path(cur, conn)
     drop_tables(cur, conn)
     create_tables(cur, conn)
 

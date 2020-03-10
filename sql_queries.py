@@ -6,6 +6,14 @@ config = configparser.ConfigParser()
 config.read('dwh.cfg')
 ARN = config.get("IAM_ROLE", "ARN")
 
+# CREATE SCHEMA
+
+create_schema = "CREATE SCHEMA IF NOT EXISTS dwh_redshift;"
+
+# SET PATH
+
+set_path_dwh = "SET search_path TO dwh_redshift;"
+
 # DROP TABLES
 
 staging_events_table_drop = "DROP table IF EXISTS staging_events CASCADE;"
@@ -58,7 +66,7 @@ staging_songs_table_create = (
 songplay_table_create = (
     "CREATE table IF NOT EXISTS songplays (" \
         "songplay_id int identity(0, 1)," \
-        "start_time TIMESTAMP," \
+        "start_time TIMESTAMP sortkey," \
         "user_id int," \
         "level varchar," \
         "song_id varchar," \
@@ -75,37 +83,40 @@ songplay_table_create = (
 
 users_table_create = (
     "CREATE table IF NOT EXISTS users (" \
-        "user_id int," \
+        "user_id int sortkey," \
         "first_name varchar," \
         "last_name varchar," \
         "gender varchar," \
         "level varchar," \
         "PRIMARY KEY (user_id))"
+        "diststyle all;"
     )
 
 song_table_create = (
     "CREATE table IF NOT EXISTS songs (" \
-        "song_id varchar NOT NULL," \
+        "song_id varchar NOT NULL sortkey," \
         "title varchar," \
         "artist_id varchar NOT NULL," \
         "year int," \
         "duration numeric," \
         "PRIMARY KEY (song_id))"
+        "diststyle even;"
     )
 
 artist_table_create = (
     "CREATE table IF NOT EXISTS artists (" \
-        "artist_id varchar NOT NULL," \
+        "artist_id varchar NOT NULL  sortkey," \
         "name varchar," \
         "location varchar," \
         "latitude numeric," \
         "longitude numeric," \
         "PRIMARY KEY (artist_id))"
+        "diststyle even;"
     )
 
 time_table_create = (
     "CREATE table IF NOT EXISTS times (" \
-        "start_time TIMESTAMP," \
+        "start_time TIMESTAMP sortkey," \
         "hour int," \
         "day int," \
         "week int," \
@@ -113,25 +124,26 @@ time_table_create = (
         "year int," \
         "weekday int," \
         "PRIMARY KEY (start_time))"
+        "diststyle all;"
     )
 
 # STAGING TABLES
 
-staging_events_copy = ("""
-    copy staging_events from {}
-    iam_role {}
-    format as json {}
-""").format(
+staging_events_copy = (
+    "copy staging_events from {} " \
+    "iam_role {} " \
+    "format as json {} " \
+).format(
     config.get("S3", "LOG_DATA"),
     ARN,
     config.get("S3", "LOG_JSONPATH")
 )
 
-staging_songs_copy = ("""
-    copy staging_songs from {}
-    iam_role {}
-    json 'auto'
-""").format(config.get("S3", "SONG_DATA"), ARN)
+staging_songs_copy = (
+    "copy staging_songs from {} " \
+    "iam_role {} " \
+    "json 'auto' " \
+).format(config.get("S3", "SONG_DATA"), ARN)
 
 # FINAL TABLES
 
@@ -211,15 +223,14 @@ songplay_table_insert = (
 
 # QUERY LISTS
 
-create_table_queries = [
-    staging_events_table_create, 
-    staging_songs_table_create,  
-    users_table_create, 
-    song_table_create, 
-    artist_table_create, 
-    time_table_create,
-    songplay_table_create
-    ]
+create_schema_redshift = [
+    create_schema
+]
+
+set_path_dwh = [
+    set_path_dwh
+]
+
 drop_table_queries = [
     staging_events_table_drop, 
     staging_songs_table_drop, 
@@ -229,6 +240,17 @@ drop_table_queries = [
     artist_table_drop, 
     time_table_drop
     ]
+
+create_table_queries = [
+    staging_events_table_create, 
+    staging_songs_table_create,  
+    users_table_create, 
+    song_table_create, 
+    artist_table_create, 
+    time_table_create,
+    songplay_table_create
+    ]
+
 copy_table_queries = {
     'staging_events_copy': staging_events_copy, 
     'staging_songs_copy': staging_songs_copy
