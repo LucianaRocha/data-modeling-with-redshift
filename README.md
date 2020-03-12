@@ -220,7 +220,7 @@ There are two options to get this project:
 
 - Download it as a zip file
 
-	- Do the download in this [link](https://github.com/LucianaRocha/data-modeling-with-postgresql/archive/master.zip).
+	- Do the download in this [link](https://github.com/LucianaRocha/data-modeling-with-redshift/archive/master.zip).
 	- Unzip the file in a folder of your choice.  
 
 - Clone this repository using Git version control system
@@ -228,7 +228,7 @@ There are two options to get this project:
 	- Open Anaconda Prompt (Windows) or Terminal (Linux), navigate to the folder of your choice, and type the command below:  
 
 	```
-	git clone https://github.com/LucianaRocha/data-modeling-with-postgresql.git
+	git clone https://github.com/LucianaRocha/data-modeling-with-redshift.git
 	```
 	
 
