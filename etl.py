@@ -12,6 +12,7 @@ ARN = config.get("IAM_ROLE", "ARN")
 
 # Set the schema path
 def set_path(cur, conn):
+    """Set the schema path for this project."""    
     for set_p in set_path_dwh:
         cur.execute(set_p)
         conn.commit()
@@ -19,6 +20,7 @@ def set_path(cur, conn):
 # Load the staging tables with copy
 # Print the begin and end each loading
 def load_staging_tables(cur, conn):
+    """Copy data from S3 to staging tables.""" 
     print('>>>> Start load_staging_tables >>>>')
     for query_name, query in copy_table_queries.items():
         print('\t{}'.format(query_name))
@@ -28,6 +30,7 @@ def load_staging_tables(cur, conn):
 
 # Insert data into tables
 def insert_tables(cur, conn):
+    """Insert data from staging tables to tables on Redshift."""
     print('>>>> Start insert_tables >>>>')
     for query_name, query in insert_table_queries.items():
         print('\t{}'.format(query_name))
@@ -37,6 +40,7 @@ def insert_tables(cur, conn):
 
 # Create the database connection
 def main():
+    """Create a database connection.""" 
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
     config_cluster = config['CLUSTER']

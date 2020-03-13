@@ -25,21 +25,21 @@ time_table_drop = "DROP table IF EXISTS times CASCADE;"
 staging_events_table_create = (
     "CREATE table IF NOT EXISTS staging_events (" \
         "artist varchar," \
-        "auth varchar not null," \
+        "auth varchar," \
         "firstName varchar," \
         "gender char (1)," \
-        "itemInSession int not null," \
+        "itemInSession int," \
         "lastName varchar," \
         "length numeric," \
-        "level varchar not null," \
+        "level varchar," \
         "location varchar," \
-        "method varchar not null," \
-        "page varchar not null," \
+        "method varchar," \
+        "page varchar," \
         "registration numeric," \
-        "sessionId int not null," \
+        "sessionId int," \
         "song varchar," \
-        "status int not null," \
-        "ts numeric not null," \
+        "status int," \
+        "ts numeric," \
         "userAgent varchar," \
         "userId int" \
         ")"
@@ -47,16 +47,16 @@ staging_events_table_create = (
 
 staging_songs_table_create = (
     "CREATE table IF NOT EXISTS staging_songs (" \
-        "num_songs int not null," \
-        "artist_id char (18) not null," \
-        "artist_latitude varchar," \
-        "artist_longitude varchar," \
+        "num_songs int," \
+        "artist_id char (18)," \
+        "artist_latitude float," \
+        "artist_longitude float," \
         "artist_location varchar," \
-        "artist_name varchar not null," \
-        "song_id char (18) not null," \
-        "title varchar not null," \
-        "duration numeric not null," \
-        "year int not null" \
+        "artist_name varchar," \
+        "song_id char (18)," \
+        "title varchar," \
+        "duration float," \
+        "year int" \
         ")"
 )
 
@@ -147,7 +147,7 @@ staging_songs_copy = (
 # Create a insert table clause for each table
 user_table_insert = (
     "INSERT INTO users " \
-        "SELECT userid, firstname, lastname, gender, level " \
+        "SELECT DISTINCT userid, firstname, lastname, gender, level " \
         "FROM " \
             "( "
             "SELECT MAX(ts) as ts, userid, firstname, "\
@@ -162,7 +162,7 @@ user_table_insert = (
 
 song_table_insert = (
     "INSERT INTO songs " \
-        "SELECT song_id, title, artist_id, year, duration " \
+        "SELECT DISTINCT song_id, title, artist_id, year, duration " \
         "FROM ( " \
         "SELECT MAX(year) AS year, song_id, title, artist_id, " \
         "duration " \
@@ -180,7 +180,7 @@ artist_table_insert = (
 
 time_table_insert = (
         "INSERT INTO times " \
-            "SELECT " \
+            "SELECT DISTINCT " \
             "start_time, " \
             "extract(hour from start_time) as hour, " \
             "extract(day from start_time) as day, " \
@@ -202,7 +202,7 @@ songplay_table_insert = (
             "start_time, user_id, level, song_id, artist_id, " \
             "session_id, location, user_agent" \
             ")" \
-        "SELECT " \
+        "SELECT DISTINCT " \
         "timestamp 'epoch' + events.ts / 1000 * interval '1 second' " \
         "as start_time, " \
         "events.userId as user_id, " \

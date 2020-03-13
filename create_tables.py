@@ -13,30 +13,35 @@ ARN = config.get("IAM_ROLE", "ARN")
 # Create a function for each list in sql_queris.py
 # Create database schema
 def create_schema(cur, conn):
+    """Create a schema for this project."""
     for create in create_schema_redshift:
         cur.execute(create)
         conn.commit()
 
 # Create schema path
 def set_path(cur, conn):
+    """Create the schema path for this project."""
     for set_p in set_path_dwh:
         cur.execute(set_p)
         conn.commit()
 
 # Create the drop table
 def drop_tables(cur, conn):
+    """Drop all tables."""
     for query in drop_table_queries:
         cur.execute(query)
         conn.commit()
 
 # Create the create tables
 def create_tables(cur, conn):
+    """Create all tables."""    
     for query in create_table_queries:
         cur.execute(query)
         conn.commit()
 
-# Create the database connection
+# Create a database connection
 def main():
+    """Create a database connection.""" 
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
     config_cluster = config['CLUSTER']
